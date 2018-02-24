@@ -18,12 +18,15 @@ int log_length = 0;
 int new_logs = false;
 
 void oled_log(String text)
-{   // only increment till screen is full
+{   
+	Serial.println(text);
+    		
+	// only increment till screen is full
     if (log_length < max_lines)
         log_length++;
     else {
         // move up one line
-        for (int i = 0; i < log_length-1; i++)
+        for (int i = 0; i < (log_length-1); i++)
             log_array[i] = log_array[i+1];
     }
     log_array[log_length-1] = text;
@@ -31,8 +34,7 @@ void oled_log(String text)
 }
 void print_oled_log()
 {   if (new_logs) {
-		Serial.println(log_length - 1);
-    	int font_height = 10;
+		int font_height = 10;
 		for (int i = 0; i < log_length; i++)
 			display.drawString(0, i * font_height, String(log_array[i]));
 		display.display();
@@ -44,9 +46,9 @@ void print_oled_log()
 #include <hal/hal.h>
 #include <SPI.h>
 
-static const PROGMEM u1_t NWKSKEY[16] = { 0xFA, 0xD5, 0xEC, 0xF3, 0x92, 0xDB, 0x56, 0x38, 0x13, 0xCB, 0x00, 0xC0, 0xD7, 0x86, 0xA5, 0x46 };
-static const u1_t PROGMEM APPSKEY[16] = { 0x37, 0xC1, 0x4A, 0x86, 0x87, 0xEA, 0x55, 0xFE, 0xC8, 0xA3, 0x05, 0x48, 0x36, 0xBF, 0x0B, 0x52 };
-static const u4_t DEVADDR = 0x26011895;
+static const PROGMEM u1_t NWKSKEY[16] = { 0xA5, 0xE1, 0x97, 0xD5, 0x11, 0xD2, 0xB6, 0xE8, 0x02, 0x85, 0xBA, 0x69, 0x18, 0x76, 0x1E, 0x47 };
+static const u1_t PROGMEM APPSKEY[16] = { 0x45, 0x84, 0x89, 0x23, 0x34, 0xEE, 0x42, 0x24, 0xCA, 0x6A, 0xC8, 0xC4, 0x93, 0x73, 0x8D, 0x9C };
+static const u4_t DEVADDR = 0x26011981;
 
 void os_getArtEui(u1_t *buf) {}
 void os_getDevEui(u1_t *buf) {}
@@ -174,6 +176,13 @@ void setup()
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
+    oled_log("1");
+    oled_log("2");
+    oled_log("3");
+    oled_log("4");
+    oled_log("5");
+    oled_log("6");
+    oled_log("7");
 
 // Set static session parameters. Instead of dynamically establishing a session
 // by joining the network, precomputed session parameters are be provided.

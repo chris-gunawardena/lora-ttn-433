@@ -1,0 +1,12 @@
+{
+  "name": "lora",
+  "version": "1.0.0",
+  "main": "server.js",
+  "repository": "git@github.com:chris-gunawardena/lora-ttn-433.git",
+  "author": "Chris Gunawardena <chris.gun@nl.ibm.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "ttn": "^2.3.1"
+  }
+}
