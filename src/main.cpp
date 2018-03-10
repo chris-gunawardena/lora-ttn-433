@@ -46,13 +46,24 @@ void print_oled_log()
 #include <hal/hal.h>
 #include <SPI.h>
 
-static const PROGMEM u1_t NWKSKEY[16] = { 0xA5, 0xE1, 0x97, 0xD5, 0x11, 0xD2, 0xB6, 0xE8, 0x02, 0x85, 0xBA, 0x69, 0x18, 0x76, 0x1E, 0x47 };
-static const u1_t PROGMEM APPSKEY[16] = { 0x45, 0x84, 0x89, 0x23, 0x34, 0xEE, 0x42, 0x24, 0xCA, 0x6A, 0xC8, 0xC4, 0x93, 0x73, 0x8D, 0x9C };
-static const u4_t DEVADDR = 0x26011981;
+// This EUI must be in little-endian format, so least-significant-byte
+// first. When copying an EUI from ttnctl output, this means to reverse
+// the bytes. For TTN issued EUIs the last bytes should be 0xD5, 0xB3,
+// 0x70.
+static const u1_t PROGMEM APPEUI[8]={ 0xD2, 0xA2, 0x00, 0xD0, 0x7E, 0xD5, 0xB3, 0x70 };
+void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
 
-void os_getArtEui(u1_t *buf) {}
-void os_getDevEui(u1_t *buf) {}
-void os_getDevKey(u1_t *buf) {}
+// This should also be in little endian format, see above.
+static const u1_t PROGMEM DEVEUI[8]={ 0x42, 0x55, 0xC5, 0xC0, 0x00, 0xDC, 0x0C, 0x00 };
+void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
+
+// This key should be in big endian format (or, since it is not really a
+// number but a block of memory, endianness does not really apply). In
+// practice, a key taken from ttnctl can be copied as-is.
+// The key shown here is the semtech default key.
+static const u1_t PROGMEM APPKEY[16] = { 0x71, 0xCC, 0x65, 0x2D, 0x71, 0xD3, 0xF2, 0x24, 0xBA, 0xAF, 0x8C, 0x95, 0x34, 0x09, 0x43, 0x23 };
+void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
+
 
 static uint8_t mydata[] = "Hello, world!";
 static osjob_t sendjob;
@@ -69,87 +80,85 @@ const lmic_pinmap lmic_pins = {
     .rst = 14,
     .dio = {/*dio0*/ 26, /*dio1*/ 33, /*dio2*/ 32}};
 
-void do_send(osjob_t *j)
-{
+void do_send(osjob_t* j){
     // Check if there is not a current TX/RX job running
-    if (LMIC.opmode & OP_TXRXPEND)
-    {
-        oled_log("OP_TXRXPEND, not sending");
-    }
-    else
-    {
+    if (LMIC.opmode & OP_TXRXPEND) {
+        Serial.println(F("OP_TXRXPEND, not sending"));
+    } else {
         // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, sizeof(mydata) - 1, 0);
-        oled_log("Packet queued");
+        LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
+        Serial.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
-void onEvent(ev_t ev)
-{
+void onEvent (ev_t ev) {
     Serial.print(os_getTime());
     Serial.print(": ");
-    switch (ev)
-    {
-    case EV_SCAN_TIMEOUT:
-        oled_log("EV_SCAN_TIMEOUT");
-        break;
-    case EV_BEACON_FOUND:
-        oled_log("EV_BEACON_FOUND");
-        break;
-    case EV_BEACON_MISSED:
-        oled_log("EV_BEACON_MISSED");
-        break;
-    case EV_BEACON_TRACKED:
-        oled_log("EV_BEACON_TRACKED");
-        break;
-    case EV_JOINING:
-        oled_log("EV_JOINING");
-        break;
-    case EV_JOINED:
-        oled_log("EV_JOINED");
-        break;
-    case EV_RFU1:
-        oled_log("EV_RFU1");
-        break;
-    case EV_JOIN_FAILED:
-        oled_log("EV_JOIN_FAILED");
-        break;
-    case EV_REJOIN_FAILED:
-        oled_log("EV_REJOIN_FAILED");
-        break;
-    case EV_TXCOMPLETE:
-        oled_log("EV_TXCOMPLETE (includes waiting for RX windows)");
-        if (LMIC.txrxFlags & TXRX_ACK)
-            oled_log("Received ack");
-        if (LMIC.dataLen)
-        {
-            oled_log("Received ");
-            oled_log(F(LMIC.dataLen));
-            oled_log(" bytes of payload");
-        }
-        // Schedule next transmission
-        os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
-        break;
-    case EV_LOST_TSYNC:
-        oled_log("EV_LOST_TSYNC");
-        break;
-    case EV_RESET:
-        oled_log("EV_RESET");
-        break;
-    case EV_RXCOMPLETE:
-        // data received in ping slot
-        oled_log("EV_RXCOMPLETE");
-        break;
-    case EV_LINK_DEAD:
-        oled_log("EV_LINK_DEAD");
-        break;
-    case EV_LINK_ALIVE:
-        oled_log("EV_LINK_ALIVE");
-        break;
-    default:
-        oled_log("Unknown event");
-        break;
+    switch(ev) {
+        case EV_SCAN_TIMEOUT:
+            Serial.println(F("EV_SCAN_TIMEOUT"));
+            break;
+        case EV_BEACON_FOUND:
+            Serial.println(F("EV_BEACON_FOUND"));
+            break;
+        case EV_BEACON_MISSED:
+            Serial.println(F("EV_BEACON_MISSED"));
+            break;
+        case EV_BEACON_TRACKED:
+            Serial.println(F("EV_BEACON_TRACKED"));
+            break;
+        case EV_JOINING:
+            Serial.println(F("EV_JOINING"));
+            break;
+        case EV_JOINED:
+            Serial.println(F("EV_JOINED"));
+
+            // Disable link check validation (automatically enabled
+            // during join, but not supported by TTN at this time).
+            LMIC_setLinkCheckMode(0);
+            break;
+        case EV_RFU1:
+            Serial.println(F("EV_RFU1"));
+            break;
+        case EV_JOIN_FAILED:
+            Serial.println(F("EV_JOIN_FAILED"));
+            break;
+        case EV_REJOIN_FAILED:
+            Serial.println(F("EV_REJOIN_FAILED"));
+            break;
+            break;
+        case EV_TXCOMPLETE:
+            Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+            if (LMIC.txrxFlags & TXRX_ACK)
+              Serial.println(F("Received ack"));
+            if (LMIC.dataLen) {
+              Serial.println(F("Received "));
+              Serial.println(LMIC.dataLen);
+              Serial.println(F(" bytes of payload"));
+            }
+            // Schedule next transmission
+            os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
+            break;
+        case EV_LOST_TSYNC:
+            Serial.println(F("EV_LOST_TSYNC"));
+            break;
+        case EV_RESET:
+            Serial.println(F("EV_RESET"));
+            break;
+        case EV_RXCOMPLETE:
+            // data received in ping slot
+            Serial.println(F("EV_RXCOMPLETE"));
+            break;
+        case EV_LINK_DEAD:
+            Serial.println(F("EV_LINK_DEAD"));
+            break;
+        case EV_LINK_ALIVE:
+            Serial.println(F("EV_LINK_ALIVE"));
+            break;
+         default:
+            Serial.println(F("Unknown event"));
+            break;
     }
 }
 
@@ -172,7 +181,7 @@ void setup()
     display.setFont(ArialMT_Plain_10); // 10, 16
 
     // LMIC init
-	pinMode(26, INPUT);
+	// pinMode(26, INPUT);
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
@@ -184,32 +193,11 @@ void setup()
     oled_log("6");
     oled_log("7");
 
-// Set static session parameters. Instead of dynamically establishing a session
-// by joining the network, precomputed session parameters are be provided.
-#ifdef PROGMEM
-    // On AVR, these values are stored in flash and only copied to RAM
-    // once. Copy them to a temporary buffer here, LMIC_setSession will
-    // copy them into a buffer of its own again.
-    uint8_t appskey[sizeof(APPSKEY)];
-    uint8_t nwkskey[sizeof(NWKSKEY)];
-    memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
-    memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
-    LMIC_setSession(0x1, DEVADDR, nwkskey, appskey);
-#else
-    // If not running an AVR with PROGMEM, just use the arrays directly
-    LMIC_setSession(0x1, DEVADDR, NWKSKEY, APPSKEY);
-#endif
+    os_init();
+    // Reset the MAC state. Session and pending data transfers will be discarded.
+    LMIC_reset();
 
-    // Disable link check validation
-    LMIC_setLinkCheckMode(0);
-
-    // TTN uses SF9 for its RX2 window.
-    LMIC.dn2Dr = DR_SF9;
-
-    // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-    LMIC_setDrTxpow(DR_SF7, 14);
-
-    // Start job
+    // Start job (sending automatically starts OTAA too)
     do_send(&sendjob);
 }
 

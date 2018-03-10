@@ -1,6 +1,6 @@
 {
     "terminal.integrated.env.osx": {
-        "PATH": "/Users/chris/.platformio/penv/bin:/Users/chris/.platformio/penv:/Users/chris/.rvm/gems/ruby-2.3.3/bin:/Users/chris/.rvm/gems/ruby-2.3.3@global/bin:/Users/chris/.rvm/rubies/ruby-2.3.3/bin:/Users/chris/.nvm/versions/node/v8.9.2/bin:/Users/chris/.fastlane/bin:/usr/local/var/pyenv/shims:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Users/chris/.rvm/bin",
+        "PATH": "/Users/chris/.platformio/penv/bin:/Users/chris/.platformio/penv:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/CrossPack-AVR/bin:/usr/local/MacGPG2/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Applications/VirtualBox.app/Contents/MacOS:/Users/chris/.pyenv/shims:/usr/local/sbin",
         "PLATFORMIO_CALLER": "vscode"
     },
     "files.associations": {
