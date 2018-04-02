@@ -1,63 +1,29 @@
 // platformio run --target upload && platformio device monitor
 
 #include <Arduino.h>
-#include <SPI.h>
-#include <SSD1306.h>
+#include <OledLog.h>
 
-// OLED pins to ESP32 GPIOs via this connecthin:
-#define OLED_ADDRESS 0x3c
-#define OLED_SDA 4  // GPIO4
-#define OLED_SCL 15 // GPIO15
-#define OLED_RST 16 // GPIO16
+OledLog oledLog;
 
-SSD1306 display(OLED_ADDRESS, OLED_SDA, OLED_SCL);
-
-#define max_lines 5
-String log_array[max_lines];
-int log_length = 0;
-int new_logs = false;
-
-void oled_log(String text)
-{   
-	Serial.println(text);
-    		
-	// only increment till screen is full
-    if (log_length < max_lines)
-        log_length++;
-    else {
-        // move up one line
-        for (int i = 0; i < (log_length-1); i++)
-            log_array[i] = log_array[i+1];
-    }
-    log_array[log_length-1] = text;
-	new_logs = true;
-}
-void print_oled_log()
-{   if (new_logs) {
-		int font_height = 10;
-		for (int i = 0; i < log_length; i++)
-			display.drawString(0, i * font_height, String(log_array[i]));
-		display.display();
-		new_logs = false;
-	}
-}
 
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
 
- // LoRaWAN NwkSKey, network session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const PROGMEM u1_t NWKSKEY[16] = { 0x72, 0xBE, 0xA1, 0xE5, 0x08, 0x2A, 0x67, 0xCE, 0x06, 0x5F, 0xA5, 0xCC, 0x61, 0x45, 0x1A, 0xBE };
+// TTN RED
+// static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x90, 0x0A, 0x76, 0xBB, 0x7D, 0x1E, 0x0F, 0xA1, 0xCE, 0x2D, 0x35, 0xC7, 0x06, 0xD9, 0x1B };
+// static const u1_t PROGMEM APPSKEY[16] = { 0xAB, 0x44, 0x3A, 0x3E, 0xBB, 0x8F, 0x98, 0x76, 0x5E, 0xB4, 0xBD, 0x11, 0x7C, 0x7A, 0xA4, 0x19 };
+// static const u4_t DEVADDR = 0x260119EE;
 
-// LoRaWAN AppSKey, application session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const u1_t PROGMEM APPSKEY[16] = { 0x67, 0x6F, 0xC4, 0x60, 0x5B, 0xA5, 0x4E, 0xFA, 0xF7, 0x15, 0x4A, 0x1B, 0xE3, 0x86, 0x9E, 0x05 };
+// KPN RED
+// static const PROGMEM u1_t NWKSKEY[16] = { 0xFA, 0x1D, 0x61, 0x8F, 0xC6, 0x8D, 0x3A, 0x64, 0x1E, 0x9B, 0x64, 0xE9, 0xFE, 0xC8, 0xBD, 0xAF };
+// static const u1_t PROGMEM APPSKEY[16] = { 0x93, 0x6C, 0x87, 0x31, 0x2F, 0xF0, 0xE3, 0x46, 0x2D, 0x4D, 0x9A, 0x9D, 0x87, 0xF5, 0x4D, 0xB1 };
+// static const u4_t DEVADDR = 0x14203EDC;
 
-// LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011CC8 ; // <-- Change this address for every node!
+// KPN BLUE
+static const PROGMEM u1_t NWKSKEY[16] = { 0x99, 0xEE, 0x8B, 0x39, 0x0B, 0x06, 0x60, 0x92, 0x7F, 0x30, 0xAC, 0xEA, 0xEA, 0x6B, 0x84, 0x8D };
+static const u1_t PROGMEM APPSKEY[16] = { 0x31, 0xF7, 0xC5, 0x8F, 0xF7, 0x06, 0xB8, 0x89, 0x0D, 0xDE, 0x0A, 0xD2, 0x8C, 0xEF, 0x4B, 0xEF };
+static const u4_t DEVADDR = 0x142048C2;
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -164,24 +130,16 @@ void setup()
     while (!Serial)
         ; //if just the the basic function, must connect to a computer
     delay(1000);
-    oled_log("Starting");
 
-    pinMode(OLED_RST, OUTPUT);
-    digitalWrite(OLED_RST, LOW); // low to reset OLED
-    delay(50);
-    digitalWrite(OLED_RST, HIGH); // must be high to turn on OLED
-
-    display.init();
-    display.flipScreenVertically();
-    display.setTextAlignment(TEXT_ALIGN_LEFT);
-    display.setFont(ArialMT_Plain_10); // 10, 16
-
+    Serial.print("xxxxxxxxxxxxx");
+    return;
 
     // LMIC init
+    LMIC_setClockError(MAX_CLOCK_ERROR * 10 / 100);
+
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
-    LMIC_setClockError(MAX_CLOCK_ERROR * 1 / 100);
 
     // Set static session parameters. Instead of dynamically establishing a session
     // by joining the network, precomputed session parameters are be provided.
@@ -257,7 +215,8 @@ void loop()
 
 	// lora
     os_runloop_once();
-
-    print_oled_log();
+    oledLog.print_log();
+    delay(1000);
+    oledLog.print_log();
 	
 }
